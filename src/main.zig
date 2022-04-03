@@ -2,17 +2,75 @@ const std = @import("std");
 const com = @import("com.zig");
 const windows = std.os.windows;
 const windows_extra = @import("windows_extra.zig");
+const Db = @import("db.zig").Db;
 
 var global_allocator_inst = std.heap.GeneralPurposeAllocator(.{}){};
 const global_allocator = global_allocator_inst.allocator();
 
 var obj_count: windows.LONG = 0;
 var lock_count: windows.LONG = 0;
+var dll_file_name_w_buf: [windows.PATH_MAX_WIDE:0]u16 = undefined;
+var dll_file_name_w: [:0]const u16 = &[_:0]u16{};
+var dll_file_name_buf: [windows.PATH_MAX_WIDE]u8 = undefined;
+var dll_file_name: []const u8 = &[_]u8{};
+var db: Db = undefined;
+var has_db: bool = false;
 
-pub fn DllMain(hModule: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved: windows.LPVOID) callconv(windows.WINAPI) windows.BOOL {
-    _ = hModule;
-    _ = dwReason;
+const sqlite_db_name = "watched.sqlite";
+
+const debug_log_name = "log.txt";
+var debug_log_path: []const u8 = undefined;
+var debug_log: std.fs.File = undefined;
+var has_debug_log: bool = false;
+
+pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved: windows.LPVOID) callconv(windows.WINAPI) windows.BOOL {
     _ = lpReserved;
+    switch (dwReason) {
+        windows_extra.DLL_PROCESS_ATTACH => {
+            dll_file_name_w = windows.GetModuleFileNameW(
+                @ptrCast(windows.HMODULE, hinstDLL),
+                &dll_file_name_w_buf,
+                dll_file_name_w_buf.len,
+            ) catch {
+                return windows.FALSE;
+            };
+
+            const len = std.unicode.utf16leToUtf8(&dll_file_name_buf, dll_file_name_w) catch {
+                return windows.FALSE;
+            };
+            dll_file_name = dll_file_name_buf[0..len];
+
+            const dll_dir = std.fs.path.dirname(dll_file_name).?;
+            const sqlite_file_path = std.fs.path.joinZ(global_allocator, &.{ dll_dir, sqlite_db_name }) catch {
+                return windows.FALSE;
+            };
+            defer global_allocator.free(sqlite_file_path);
+
+            debug_log_path = std.fs.path.join(global_allocator, &.{ dll_dir, debug_log_name }) catch {
+                return windows.FALSE;
+            };
+            debug_log = std.fs.cwd().createFile(debug_log_path, .{ .truncate = false }) catch return windows.FALSE;
+            has_debug_log = true;
+            debug_log.seekFromEnd(0) catch return windows.FALSE;
+
+            db = Db.init(sqlite_file_path) catch return windows.FALSE;
+            has_db = true;
+        },
+        windows_extra.DLL_PROCESS_DETACH => {
+            if (has_db) {
+                db.deinit();
+                has_db = false;
+            }
+            if (has_debug_log) {
+                debug_log.close();
+                has_debug_log = false;
+            }
+        },
+
+        windows_extra.DLL_THREAD_ATTACH, windows_extra.DLL_THREAD_DETACH => {},
+
+        else => {},
+    }
     return windows.TRUE;
 }
 
@@ -98,28 +156,9 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
     ) callconv(windows.WINAPI) windows.HRESULT {
         _ = self;
         _ = dwAttrib;
-        // need to prefix the path with \??\ to be a valid input to Zig's OpenFile interface
-        const prefixed_path = windows.wToPrefixedFileW(std.mem.span(pwszPath)) catch {
-            return windows.E_FAIL;
-        };
 
-        // need to call OpenFile directly to be able to call it on files OR directories, AFAICT Zig's
-        // fs only offers one or the other currently.
-        const handle = windows.OpenFile(prefixed_path.span(), .{
-            .access_mask = windows.GENERIC_READ | windows.FILE_READ_ATTRIBUTES | windows.SYNCHRONIZE,
-            .creation = windows.FILE_OPEN,
-            .io_mode = .blocking,
-            .filter = .any,
-        }) catch {
-            return windows.E_FAIL;
-        };
-        const file = std.fs.File{ .handle = handle };
-        defer file.close();
-
-        const stat = file.stat() catch {
-            return windows.E_FAIL;
-        };
-        if (stat.size < 2) {
+        const pathw = pwszPath[0..std.mem.len(pwszPath)];
+        if (db.isWatchedW(pathw)) {
             return windows.S_OK;
         } else {
             return windows_extra.S_FALSE;
@@ -283,3 +322,7 @@ pub const IWatchedClassFactory = extern struct {
     };
     pub const inst = Self{ .vtable = &vtable_impl };
 };
+
+test {
+    _ = std.testing.refAllDecls(@This());
+}
