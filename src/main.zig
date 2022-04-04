@@ -141,8 +141,7 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
 
         if (self.ref == 0) {
             global_allocator.destroy(self);
-            obj_count -= 1;
-            //_ = windows_extra.InterlockedDecrement(&obj_count);
+            _ = @atomicRmw(windows.LONG, &obj_count, .Sub, 1, .Monotonic);
             return 0;
         }
 
@@ -285,8 +284,7 @@ pub const IWatchedClassFactory = extern struct {
         // QueryInterface call
         _ = obj.vtable.unknown.Release(obj);
 
-        obj_count += 1;
-        //_ = windows_extra.InterlockedIncrement(&obj_count);
+        _ = @atomicRmw(windows.LONG, &obj_count, .Add, 1, .Monotonic);
 
         return result;
     }
@@ -298,11 +296,9 @@ pub const IWatchedClassFactory = extern struct {
         _ = self;
 
         if (fLock != 0) {
-            lock_count += 1;
-            //_ = windows_extra.InterlockedIncrement(&lock_count);
+            _ = @atomicRmw(windows.LONG, &lock_count, .Add, 1, .Monotonic);
         } else {
-            lock_count -= 1;
-            //_ = windows_extra.InterlockedDecrement(&lock_count);
+            _ = @atomicRmw(windows.LONG, &lock_count, .Sub, 1, .Monotonic);
         }
         return windows.S_OK;
     }
