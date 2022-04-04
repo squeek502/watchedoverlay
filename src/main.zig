@@ -75,8 +75,8 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
 }
 
 export fn DllGetClassObject(rclsid: *const windows.GUID, riid: *const windows.GUID, ppv: ?*?*anyopaque) callconv(windows.WINAPI) windows.HRESULT {
-    if (com.IsEqualCLSID(rclsid, IWatchedShellOverlayIdentifer.CLSID)) {
-        IWatchedClassFactory.create(global_allocator, IWatchedShellOverlayIdentifer.create, riid, ppv) catch {
+    if (com.IsEqualCLSID(rclsid, WatchedOverlay.CLSID)) {
+        WatchedClassFactory.create(global_allocator, WatchedOverlay.create, riid, ppv) catch {
             return windows.E_OUTOFMEMORY;
         };
         return windows.S_OK;
@@ -98,7 +98,7 @@ export fn DllUnregisterServer() callconv(windows.WINAPI) windows.HRESULT {
     return windows.S_OK;
 }
 
-pub const IWatchedShellOverlayIdentifer = extern struct {
+pub const WatchedOverlay = extern struct {
     const Self = @This();
     const VTable = extern struct {
         unknown: com.IUnknown.VTable(Self),
@@ -212,11 +212,11 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        var obj = global_allocator.create(IWatchedShellOverlayIdentifer) catch {
+        var obj = global_allocator.create(WatchedOverlay) catch {
             return windows.E_OUTOFMEMORY;
         };
 
-        obj.vtable = &IWatchedShellOverlayIdentifer.vtable_impl;
+        obj.vtable = &WatchedOverlay.vtable_impl;
         obj.ref = 1;
 
         const result = obj.vtable.unknown.QueryInterface(obj, riid, ppvObject);
@@ -245,7 +245,7 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
     };
 };
 
-pub const IWatchedClassFactory = extern struct {
+pub const WatchedClassFactory = extern struct {
     const Self = @This();
     const VTable = extern struct {
         unknown: com.IUnknown.VTable(Self),
@@ -329,9 +329,9 @@ pub const IWatchedClassFactory = extern struct {
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
     ) std.mem.Allocator.Error!void {
-        var obj = try allocator.create(IWatchedClassFactory);
+        var obj = try allocator.create(WatchedClassFactory);
 
-        obj.vtable = &IWatchedClassFactory.vtable_impl;
+        obj.vtable = &WatchedClassFactory.vtable_impl;
         obj.create_fn = create_fn;
         obj.ref = 1;
 
