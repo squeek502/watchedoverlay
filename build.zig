@@ -17,6 +17,7 @@ pub fn build(b: *std.build.Builder) void {
     lib.linkLibC();
     lib.linkLibrary(sqlite);
     lib.addIncludeDir("lib/zig-sqlite/c");
+    lib.addObjectFile("res/resource.res.obj");
     lib.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
     lib.install();
 

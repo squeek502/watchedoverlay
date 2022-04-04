@@ -187,9 +187,7 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
             return windows.E_INVALIDARG;
         }
 
-        // TODO embed an icon in the dll, get it from there
-        const ico_path_utf16 = std.unicode.utf8ToUtf16LeStringLiteral("C:\\Windows\\SystemApps\\Microsoft.Windows.SecHealthUI_cw5n1h2txyewy\\Assets\\Threat.contrast-white.ico");
-        std.mem.copy(u16, (pwszIconFile.?)[0..@intCast(usize, cchMax)], ico_path_utf16[0 .. ico_path_utf16.len + 1]);
+        std.mem.copy(u16, (pwszIconFile.?)[0..@intCast(usize, cchMax)], dll_file_name_w[0 .. dll_file_name_w.len + 1]);
 
         pIndex.?.* = 0;
         pdwFlags.?.* = windows_extra.ISIOI_ICONFILE | windows_extra.ISIOI_ICONINDEX;
