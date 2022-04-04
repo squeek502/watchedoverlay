@@ -76,8 +76,10 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
 
 export fn DllGetClassObject(rclsid: *const windows.GUID, riid: *const windows.GUID, ppv: ?*?*anyopaque) callconv(windows.WINAPI) windows.HRESULT {
     if (com.IsEqualCLSID(rclsid, IWatchedShellOverlayIdentifer.CLSID)) {
-        const unconst_ptr = @intToPtr(*IWatchedClassFactory, @ptrToInt(&IWatchedClassFactory.inst));
-        return IWatchedClassFactory.inst.vtable.unknown.QueryInterface(unconst_ptr, riid, ppv);
+        IWatchedClassFactory.create(global_allocator, IWatchedShellOverlayIdentifer.create, riid, ppv) catch {
+            return windows.E_OUTOFMEMORY;
+        };
+        return windows.S_OK;
     } else {
         ppv.?.* = null;
         return windows_extra.CLASS_E_CLASSNOTAVAILABLE;
@@ -206,6 +208,29 @@ pub const IWatchedShellOverlayIdentifer = extern struct {
         return windows.S_OK;
     }
 
+    pub fn create(
+        riid: ?*const windows.GUID,
+        ppvObject: ?*?*anyopaque,
+    ) callconv(windows.WINAPI) windows.HRESULT {
+        var obj = global_allocator.create(IWatchedShellOverlayIdentifer) catch {
+            return windows.E_OUTOFMEMORY;
+        };
+
+        obj.vtable = &IWatchedShellOverlayIdentifer.vtable_impl;
+        obj.ref = 1;
+
+        const result = obj.vtable.unknown.QueryInterface(obj, riid, ppvObject);
+        // since we set everything up before this call, any error is a failure on our part
+        std.debug.assert(result == windows.S_OK);
+        // Release to decrement reference count after it was incremented in the
+        // QueryInterface call
+        _ = obj.vtable.unknown.Release(obj);
+
+        _ = @atomicRmw(windows.LONG, &obj_count, .Add, 1, .Monotonic);
+
+        return result;
+    }
+
     pub const vtable_impl: Self.VTable = .{
         .unknown = .{
             .QueryInterface = QueryInterface,
@@ -226,15 +251,21 @@ pub const IWatchedClassFactory = extern struct {
         unknown: com.IUnknown.VTable(Self),
         class_factory: com.IClassFactory.VTable(Self),
     };
+    const CreateFn = fn (
+        riid: ?*const windows.GUID,
+        ppvObject: ?*?*anyopaque,
+    ) callconv(windows.WINAPI) windows.HRESULT;
 
     vtable: *const Self.VTable,
+    create_fn: CreateFn,
+    ref: u32,
 
     pub fn QueryInterface(
         self: *Self,
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        if (!com.IsEqualIID(riid.?, com.IUnknown.IID) and !com.IsEqualIID(riid.?, com.IClassFactory.IID)) {
+        if (!com.IsEqualIID(riid.?, com.IClassFactory.IID)) {
             ppvObject.?.* = null;
             return windows.E_NOINTERFACE;
         }
@@ -246,18 +277,21 @@ pub const IWatchedClassFactory = extern struct {
         return windows.S_OK;
     }
 
-    /// Don't need to count references since we statically allocate the
-    /// only instance
     pub fn AddRef(self: *Self) callconv(windows.WINAPI) u32 {
-        _ = self;
-        return 1;
+        self.ref += 1;
+        return self.ref;
     }
 
-    /// Don't need to count references since we statically allocate the
-    /// only instance
     pub fn Release(self: *Self) callconv(windows.WINAPI) u32 {
-        _ = self;
-        return 1;
+        self.ref -= 1;
+
+        if (self.ref == 0) {
+            global_allocator.destroy(self);
+            _ = @atomicRmw(windows.LONG, &obj_count, .Sub, 1, .Monotonic);
+            return 0;
+        }
+
+        return self.ref;
     }
 
     pub fn CreateInstance(
@@ -272,21 +306,7 @@ pub const IWatchedClassFactory = extern struct {
             return windows_extra.CLASS_E_NOAGGREGATION;
         }
 
-        var obj = global_allocator.create(IWatchedShellOverlayIdentifer) catch {
-            return windows.E_OUTOFMEMORY;
-        };
-
-        obj.vtable = &IWatchedShellOverlayIdentifer.vtable_impl;
-        obj.ref = 1;
-
-        const result = obj.vtable.unknown.QueryInterface(obj, riid, ppvObject);
-        // Release to decrement reference count after it was incremented in the
-        // QueryInterface call
-        _ = obj.vtable.unknown.Release(obj);
-
-        _ = @atomicRmw(windows.LONG, &obj_count, .Add, 1, .Monotonic);
-
-        return result;
+        return self.create_fn(riid, ppvObject);
     }
 
     pub fn LockServer(
@@ -303,6 +323,28 @@ pub const IWatchedClassFactory = extern struct {
         return windows.S_OK;
     }
 
+    pub fn create(
+        allocator: std.mem.Allocator,
+        create_fn: CreateFn,
+        riid: ?*const windows.GUID,
+        ppvObject: ?*?*anyopaque,
+    ) std.mem.Allocator.Error!void {
+        var obj = try allocator.create(IWatchedClassFactory);
+
+        obj.vtable = &IWatchedClassFactory.vtable_impl;
+        obj.create_fn = create_fn;
+        obj.ref = 1;
+
+        const result = obj.vtable.unknown.QueryInterface(obj, riid, ppvObject);
+        // since we set everything up before this call, any error is a failure on our part
+        std.debug.assert(result == windows.S_OK);
+        // Release to decrement reference count after it was incremented in the
+        // QueryInterface call
+        _ = obj.vtable.unknown.Release(obj);
+
+        _ = @atomicRmw(windows.LONG, &obj_count, .Add, 1, .Monotonic);
+    }
+
     pub const vtable_impl: Self.VTable = .{
         .unknown = .{
             .QueryInterface = QueryInterface,
@@ -314,7 +356,6 @@ pub const IWatchedClassFactory = extern struct {
             .LockServer = LockServer,
         },
     };
-    pub const inst = Self{ .vtable = &vtable_impl };
 };
 
 test {
