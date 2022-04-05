@@ -2,7 +2,7 @@ const std = @import("std");
 const com = @import("com.zig");
 const windows = std.os.windows;
 const windows_extra = @import("windows_extra.zig");
-const main = @import("main.zig");
+const main = @import("dllmain.zig");
 
 // The method used here to emulate multiple inheritance is to have two vtables,
 // and then in QueryInterface we have different functionality depending on which

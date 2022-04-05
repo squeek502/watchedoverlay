@@ -2,7 +2,7 @@ const std = @import("std");
 const com = @import("com.zig");
 const windows = std.os.windows;
 const windows_extra = @import("windows_extra.zig");
-const main = @import("main.zig");
+const main = @import("dllmain.zig");
 
 pub const WatchedClassFactory = extern struct {
     const Self = @This();
