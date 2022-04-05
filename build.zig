@@ -11,7 +11,7 @@ pub fn build(b: *std.build.Builder) void {
     sqlite.addIncludeDir("lib/zig-sqlite/c");
     sqlite.linkLibC();
 
-    const lib = b.addSharedLibrary("IWatchedShellOverlayIdentifer", "src/dllmain.zig", .{ .unversioned = {} });
+    const lib = b.addSharedLibrary("watched", "src/dllmain.zig", .{ .unversioned = {} });
     lib.setBuildMode(mode);
     lib.setTarget(target);
     lib.linkLibC();
