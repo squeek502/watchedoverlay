@@ -6,6 +6,7 @@ const Db = @import("db.zig").Db;
 const WatchedClassFactory = @import("factory.zig").WatchedClassFactory;
 const WatchedOverlay = @import("overlay.zig").WatchedOverlay;
 const WatchedContextMenu = @import("context_menu.zig").WatchedContextMenu;
+const registry = @import("registry.zig");
 
 pub const global_allocator = std.heap.c_allocator;
 
@@ -82,10 +83,58 @@ export fn DllCanUnloadNow() callconv(windows.WINAPI) windows.HRESULT {
 }
 
 export fn DllRegisterServer() callconv(windows.WINAPI) windows.HRESULT {
+    registry.registerInprocServer(
+        WatchedOverlay.CLSID_String,
+        dll_file_name_w,
+        std.unicode.utf8ToUtf16LeStringLiteral("WatchedOverlay"),
+    ) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.registerInprocServer(
+        WatchedContextMenu.CLSID_String,
+        dll_file_name_w,
+        std.unicode.utf8ToUtf16LeStringLiteral("WatchedContextMenu"),
+    ) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.registerOverlay("   WatchedOverlay", WatchedOverlay.CLSID_String) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.registerContextMenu("*", "WatchedContextMenu", WatchedContextMenu.CLSID_String) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.registerContextMenu("Directory", "WatchedContextMenu", WatchedContextMenu.CLSID_String) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
     return windows.S_OK;
 }
 
 export fn DllUnregisterServer() callconv(windows.WINAPI) windows.HRESULT {
+    registry.unregisterInprocServer(WatchedOverlay.CLSID_String) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.unregisterInprocServer(WatchedContextMenu.CLSID_String) catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.unregisterOverlay("   WatchedOverlay") catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.unregisterContextMenu("*", "WatchedContextMenu") catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
+    registry.unregisterContextMenu("Directory", "WatchedContextMenu") catch |err| switch (err) {
+        error.AccessDenied => return windows.E_ACCESSDENIED,
+        error.Unexpected => return windows.E_UNEXPECTED,
+    };
     return windows.S_OK;
 }
 

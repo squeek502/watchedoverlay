@@ -32,11 +32,11 @@ pub const WatchedContextMenu = extern struct {
     paths: ?[*][:0]const u16 = null,
     num_paths: usize = 0,
 
-    const CLSID_String = "{1a2ffb08-53c2-4976-b10f-d2160b25373b}";
+    pub const CLSID_String = "{1a2ffb08-53c2-4976-b10f-d2160b25373b}";
     const CLSID_Value = windows.GUID.parse(CLSID_String);
     pub const CLSID = &CLSID_Value;
 
-    const IID_String = "{c44d7456-aed1-4a97-9c09-be5b1d434611}";
+    pub const IID_String = "{c44d7456-aed1-4a97-9c09-be5b1d434611}";
     const IID_Value = windows.GUID.parse(IID_String);
     pub const IID = &IID_Value;
 

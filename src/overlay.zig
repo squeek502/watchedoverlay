@@ -14,11 +14,11 @@ pub const WatchedOverlay = extern struct {
     vtable: *const Self.VTable,
     ref: u32,
 
-    const CLSID_String = "{0c781461-65a7-4d7a-8c33-bf0a9b9fd362}";
+    pub const CLSID_String = "{0c781461-65a7-4d7a-8c33-bf0a9b9fd362}";
     const CLSID_Value = windows.GUID.parse(CLSID_String);
     pub const CLSID = &CLSID_Value;
 
-    const IID_String = "{e85595ed-c37f-4498-86b8-115b0035e6fd}";
+    pub const IID_String = "{e85595ed-c37f-4498-86b8-115b0035e6fd}";
     const IID_Value = windows.GUID.parse(IID_String);
     pub const IID = &IID_Value;
 
