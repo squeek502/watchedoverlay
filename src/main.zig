@@ -4,8 +4,7 @@ const windows = std.os.windows;
 const windows_extra = @import("windows_extra.zig");
 const Db = @import("db.zig").Db;
 
-var global_allocator_inst = std.heap.GeneralPurposeAllocator(.{}){};
-const global_allocator = global_allocator_inst.allocator();
+const global_allocator = std.heap.c_allocator;
 
 var obj_count: windows.LONG = 0;
 var lock_count: windows.LONG = 0;
