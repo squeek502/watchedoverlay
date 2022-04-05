@@ -17,11 +17,6 @@ var has_db: bool = false;
 
 const sqlite_db_name = "watched.sqlite";
 
-const debug_log_name = "log.txt";
-var debug_log_path: []const u8 = undefined;
-var debug_log: std.fs.File = undefined;
-var has_debug_log: bool = false;
-
 pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved: windows.LPVOID) callconv(windows.WINAPI) windows.BOOL {
     _ = lpReserved;
     switch (dwReason) {
@@ -45,13 +40,6 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
             };
             defer global_allocator.free(sqlite_file_path);
 
-            debug_log_path = std.fs.path.join(global_allocator, &.{ dll_dir, debug_log_name }) catch {
-                return windows.FALSE;
-            };
-            debug_log = std.fs.cwd().createFile(debug_log_path, .{ .truncate = false }) catch return windows.FALSE;
-            has_debug_log = true;
-            debug_log.seekFromEnd(0) catch return windows.FALSE;
-
             db = Db.init(sqlite_file_path) catch return windows.FALSE;
             has_db = true;
         },
@@ -59,10 +47,6 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
             if (has_db) {
                 db.deinit();
                 has_db = false;
-            }
-            if (has_debug_log) {
-                debug_log.close();
-                has_debug_log = false;
             }
         },
 
