@@ -21,6 +21,16 @@ pub fn build(b: *std.build.Builder) void {
     lib.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
     lib.install();
 
+    const watcher_vlc = b.addExecutable("watcher-vlc", "src/watcher-vlc.zig");
+    watcher_vlc.setBuildMode(mode);
+    watcher_vlc.setTarget(target);
+    watcher_vlc.linkLibC();
+    watcher_vlc.linkLibrary(sqlite);
+    watcher_vlc.addIncludeDir("lib/zig-sqlite/c");
+    watcher_vlc.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    watcher_vlc.addPackage(.{ .name = "zuri", .path = .{ .path = "lib/zuri/src/zuri.zig" } });
+    watcher_vlc.install();
+
     const main_tests = b.addTest("src/dllmain.zig");
     main_tests.linkLibC();
     main_tests.linkLibrary(sqlite);
