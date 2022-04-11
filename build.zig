@@ -13,15 +13,15 @@ pub fn build(b: *std.build.Builder) void {
     sqlite.addIncludeDir("lib/zig-sqlite/c");
     sqlite.linkLibC();
 
-    const lib = b.addSharedLibrary("watched", "src/dllmain.zig", .{ .unversioned = {} });
-    lib.setBuildMode(mode);
-    lib.setTarget(target);
-    lib.linkLibC();
-    lib.linkLibrary(sqlite);
-    lib.addIncludeDir("lib/zig-sqlite/c");
-    lib.addObjectFile("res/resource.res.obj");
-    lib.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
-    lib.install();
+    const watched = b.addSharedLibrary("watched", "src/dllmain.zig", .{ .unversioned = {} });
+    watched.setBuildMode(mode);
+    watched.setTarget(target);
+    watched.linkLibC();
+    watched.linkLibrary(sqlite);
+    watched.addIncludeDir("lib/zig-sqlite/c");
+    watched.addObjectFile("res/resource.res.obj");
+    watched.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    watched.install();
 
     const watcher_vlc = b.addExecutable("watcher-vlc", "src/watcher-vlc.zig");
     watcher_vlc.setBuildMode(mode);
@@ -42,4 +42,31 @@ pub fn build(b: *std.build.Builder) void {
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
+
+    // dist
+    const dist_watched = b.addInstallFileWithDir(
+        watched.getOutputSource(),
+        std.build.InstallDir{ .custom = "dist" },
+        watched.out_filename,
+    );
+    dist_watched.step.dependOn(b.getInstallStep());
+
+    const dist_watcher = b.addInstallFileWithDir(
+        watcher_vlc.getOutputSource(),
+        std.build.InstallDir{ .custom = "dist" },
+        watcher_vlc.out_filename,
+    );
+    dist_watcher.step.dependOn(b.getInstallStep());
+
+    const dist_scripts = b.addInstallDirectory(.{
+        .source_dir = "dist",
+        .install_dir = std.build.InstallDir{ .custom = "dist" },
+        .install_subdir = "",
+    });
+    dist_scripts.step.dependOn(b.getInstallStep());
+
+    const dist = b.step("dist", "Package for distribution");
+    dist.dependOn(&dist_watcher.step);
+    dist.dependOn(&dist_watched.step);
+    dist.dependOn(&dist_scripts.step);
 }
