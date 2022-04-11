@@ -8,6 +8,8 @@ pub fn build(b: *std.build.Builder) void {
 
     const sqlite = b.addStaticLibrary("sqlite", null);
     sqlite.addCSourceFile("lib/zig-sqlite/c/sqlite3.c", &[_][]const u8{"-std=c99"});
+    sqlite.setBuildMode(mode);
+    sqlite.setTarget(target);
     sqlite.addIncludeDir("lib/zig-sqlite/c");
     sqlite.linkLibC();
 
