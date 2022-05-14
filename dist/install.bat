@@ -13,7 +13,7 @@ if NOT %errorlevel% == 0 (
 	pause
 	exit /B %errorlevel%
 )
-echo Installed shell extension succesfully.
+echo Installed shell extension successfully.
 echo You must restart explorer.exe for the changes to take effect.
 
 : watcher
@@ -43,5 +43,9 @@ echo oLink.Save >> %SCRIPT%
 cscript /nologo %SCRIPT%
 del /q %SCRIPT%
 
-echo Installed startup script (to make the watcher automatically run at startup) succesfully.
+echo Installed startup script (to make the watcher automatically run at startup) successfully.
+
+tskill watcher-vlc 2>nul
+"%StartupDir%\watcher-vlc.lnk"
+echo Started watcher-vlc in the background.
 pause

@@ -13,10 +13,12 @@ if NOT %errorlevel% == 0 (
 	pause
 	exit /B %errorlevel%
 )
-echo Uninstalled shell extension succesfully.
+echo Uninstalled shell extension successfully.
 echo You must restart explorer.exe for the changes to take effect.
 
 : watcher
+
+tskill watcher-vlc 2>nul
 
 FOR /f "tokens=1,2*" %%E in ('reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"') DO (
 	IF "%%E"=="Startup" (
@@ -33,5 +35,5 @@ call set StartupDir=%StartupDir%
 
 if exist "%StartupDir%\watcher-vlc.lnk" del /q "%StartupDir%\watcher-vlc.lnk"
 
-echo Uninstalled startup script (that made the watcher automatically run at startup) succesfully.
+echo Uninstalled startup script (that made the watcher automatically run at startup) successfully.
 pause
