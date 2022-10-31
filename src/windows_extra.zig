@@ -11,7 +11,12 @@ pub const HDROP = *opaque {};
 pub extern "shell32" fn DragQueryFileW(
     hDrop: HDROP,
     iFile: windows.UINT,
-    lpszFile: ?windows.LPWSTR,
+    // NOTE: This is windows.LPWSTR but without the sentinel, since this is an input so the sentinel
+    //       isn't relevant and we pass the length of the buffer in `cch`
+    // TODO: Is this Zig defining LPWSTR incorrectly?
+    //       > LPWSTR type is a 32-bit pointer to a string of 16-bit Unicode characters, which MAY be null-terminated
+    //       From https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/50e9ef83-d6fd-4e22-a34a-2c6b4e3c24f3
+    lpszFile: ?[*]windows.WCHAR,
     cch: windows.UINT,
 ) callconv(windows.WINAPI) windows.UINT;
 // https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-dragqueryfilew

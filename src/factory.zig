@@ -10,10 +10,10 @@ pub const WatchedClassFactory = extern struct {
         unknown: com.IUnknown.VTable(Self),
         class_factory: com.IClassFactory.VTable(Self),
     };
-    const CreateFn = fn (
+    const CreateFn = std.meta.FnPtr(fn (
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
-    ) callconv(windows.WINAPI) windows.HRESULT;
+    ) callconv(windows.WINAPI) windows.HRESULT);
 
     vtable: *const Self.VTable,
     create_fn: CreateFn,
@@ -59,8 +59,6 @@ pub const WatchedClassFactory = extern struct {
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        _ = self;
-
         if (pUnkOuter != null) {
             return windows_extra.CLASS_E_NOAGGREGATION;
         }

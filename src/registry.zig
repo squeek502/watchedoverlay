@@ -30,9 +30,7 @@ pub const REG_OPTION_NON_VOLATILE = 0;
 pub const KEY_WRITE = 0x20006; // Combines the STANDARD_RIGHTS_WRITE, KEY_SET_VALUE, and KEY_CREATE_SUB_KEY access rights.
 pub const REG_SZ = 1;
 pub const HKEY_CLASSES_ROOT: windows.HKEY = @intToPtr(windows.HKEY, @as(usize, 0x80000000));
-// some hackery to get around alignment checks when casting from usize to windows.HKEY directly
-// the error in question is "error: pointer type '*std.os.windows.HKEY__' requires aligned address"
-pub const HKEY_LOCAL_MACHINE: windows.HKEY = @ptrCast(windows.HKEY, @intToPtr(?*anyopaque, @as(usize, 0x80000002)));
+pub const HKEY_LOCAL_MACHINE: windows.HKEY = @intToPtr(windows.HKEY, @as(usize, 0x80000002));
 
 pub fn createAndSetStringValue(hkey: windows.HKEY, sub_key: [:0]const u16, name: ?[:0]const u16, value: [:0]const u16) !void {
     var write_key: windows.HKEY = undefined;

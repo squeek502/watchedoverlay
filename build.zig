@@ -10,7 +10,7 @@ pub fn build(b: *std.build.Builder) void {
     sqlite.addCSourceFile("lib/zig-sqlite/c/sqlite3.c", &[_][]const u8{"-std=c99"});
     sqlite.setBuildMode(mode);
     sqlite.setTarget(target);
-    sqlite.addIncludeDir("lib/zig-sqlite/c");
+    sqlite.addIncludePath("lib/zig-sqlite/c");
     sqlite.linkLibC();
 
     const watched = b.addSharedLibrary("watched", "src/dllmain.zig", .{ .unversioned = {} });
@@ -18,9 +18,9 @@ pub fn build(b: *std.build.Builder) void {
     watched.setTarget(target);
     watched.linkLibC();
     watched.linkLibrary(sqlite);
-    watched.addIncludeDir("lib/zig-sqlite/c");
+    watched.addIncludePath("lib/zig-sqlite/c");
     watched.addObjectFile("res/resource.res.obj");
-    watched.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    watched.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
     watched.install();
 
     const watcher_vlc = b.addExecutable("watcher-vlc", "src/watcher-vlc.zig");
@@ -28,16 +28,16 @@ pub fn build(b: *std.build.Builder) void {
     watcher_vlc.setTarget(target);
     watcher_vlc.linkLibC();
     watcher_vlc.linkLibrary(sqlite);
-    watcher_vlc.addIncludeDir("lib/zig-sqlite/c");
-    watcher_vlc.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
-    watcher_vlc.addPackage(.{ .name = "zuri", .path = .{ .path = "lib/zuri/src/zuri.zig" } });
+    watcher_vlc.addIncludePath("lib/zig-sqlite/c");
+    watcher_vlc.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    watcher_vlc.addPackage(.{ .name = "zuri", .source = .{ .path = "lib/zuri/src/zuri.zig" } });
     watcher_vlc.install();
 
     const main_tests = b.addTest("src/dllmain.zig");
     main_tests.linkLibC();
     main_tests.linkLibrary(sqlite);
-    main_tests.addIncludeDir("lib/zig-sqlite/c");
-    main_tests.addPackage(.{ .name = "sqlite", .path = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    main_tests.addIncludePath("lib/zig-sqlite/c");
+    main_tests.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
     main_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run library tests");
