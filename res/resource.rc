@@ -1,5 +1,1 @@
-#include "resource.h"
-
-#include <windows.h>
-
-IDI_WATCHEDICON ICON "watched.ico"
+1 ICON "watched.ico"
