@@ -150,7 +150,8 @@ fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
     }
 
     for (paths.items) |uri, i| {
-        const parsed = try zuri.Uri.parse(uri, false);
+        const encoded_uri = try fullyEncodeUri(arena, uri);
+        const parsed = try zuri.Uri.parse(encoded_uri, false);
         const trimmed_path = std.mem.trimLeft(u8, parsed.path, "/");
         var decoded_path = try zuri.Uri.decode(arena, trimmed_path);
         var path = decoded_path orelse trimmed_path;
@@ -161,4 +162,17 @@ fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
     }
 
     return paths.toOwnedSlice();
+}
+
+// Converts [ and ] to %5B and %5D, as [ and ] are techinically invalid but
+// VLC doesn't urlencode them.
+fn fullyEncodeUri(allocator: std.mem.Allocator, str: []const u8) ![]u8 {
+    var encoded = std.ArrayListUnmanaged(u8){};
+    errdefer encoded.deinit(allocator);
+    for (str) |c| switch (c) {
+        '[' => try encoded.appendSlice(allocator, "%5B"),
+        ']' => try encoded.appendSlice(allocator, "%5D"),
+        else => try encoded.append(allocator, c),
+    };
+    return encoded.toOwnedSlice(allocator);
 }
