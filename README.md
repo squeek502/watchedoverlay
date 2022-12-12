@@ -16,13 +16,13 @@ A Windows shell extension to mark files with a 'watched' icon, and a utility pro
 
 ## Building
 
-Requires latest master version of Zig.
+Note: Last tested with Zig 0.10.0. Pull requests that fix the build for latest master version of Zig are always welcome, though.
 
 1. Clone this repository and its submodules (`git clone --recursive` to get submodules)
 2. `zig build dist`
 3. The resulting files will be in `zig-out/dist`
 
-Note that, by default, `zig build dist` will build everything in debug mode and use all the features of your current CPU (so it may not work on other computers). To make a more portable and faster build, you can use something like `zig build -Drelease-safe -Dcpu=x86_64 dist` instead.
+Note that, by default, `zig build dist` will build everything in debug mode and use all the features of your current CPU (so it may not work on other computers). To make a more portable and faster build, you can use something like `zig build dist -Drelease-safe -Dcpu=x86_64` instead.
 
 ## Overview of the source code
 
