@@ -29,7 +29,7 @@ pub fn main() !void {
         const sqlite_file_path = try std.fs.path.joinZ(allocator, &.{ exe_dir, sqlite_db_name });
         defer allocator.free(sqlite_file_path);
 
-        break :db try Db.init(sqlite_file_path);
+        break :db try Db.init(allocator, sqlite_file_path);
     };
     defer db.deinit();
 

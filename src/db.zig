@@ -1,10 +1,13 @@
 const std = @import("std");
 const sqlite = @import("sqlite");
+const Cache = @import("cache.zig").Cache;
+const Allocator = std.mem.Allocator;
 
 pub const Db = struct {
     db: sqlite.Db,
+    cache: Cache,
 
-    pub fn init(path: [:0]const u8) !Db {
+    pub fn init(allocator: Allocator, path: [:0]const u8) !Db {
         var self = Db{
             .db = try sqlite.Db.init(.{
                 .mode = sqlite.Db.Mode{ .File = path },
@@ -13,6 +16,7 @@ pub const Db = struct {
                     .create = true,
                 },
             }),
+            .cache = Cache.init(allocator),
         };
         errdefer self.deinit();
 
@@ -23,11 +27,15 @@ pub const Db = struct {
             \\    watched INTEGER DEFAULT 1
             \\);
         , .{}, .{});
+
+        try self.initCache();
+
         return self;
     }
 
     pub fn deinit(self: *Db) void {
         self.db.deinit();
+        self.cache.deinit();
     }
 
     pub fn setWatchedW(self: *Db, pathw: []const u16, watched: bool) !void {
@@ -47,6 +55,8 @@ pub const Db = struct {
                 .pathw = blob,
                 .watched = watched,
             });
+
+            try self.cache.update(pathw);
         } else {
             try self.db.exec("DELETE FROM watched WHERE pathw=?", .{}, .{
                 .pathw = blob,
@@ -55,6 +65,8 @@ pub const Db = struct {
     }
 
     pub fn isWatchedW(self: *Db, pathw: []const u16) bool {
+        if (!self.cache.contains(pathw)) return false;
+
         const bytes = std.mem.sliceAsBytes(pathw);
         const blob = sqlite.Blob{ .data = bytes };
         const watched = self.db.one(u8, "SELECT watched FROM watched WHERE pathw=?", .{}, .{
@@ -81,6 +93,8 @@ pub const Db = struct {
                 .pathw = blob,
                 .watched = watched,
             });
+
+            try self.cache.update(pathw);
         } else {
             try self.db.exec("DELETE FROM watched WHERE path=?", .{}, .{
                 .path = path,
@@ -89,10 +103,27 @@ pub const Db = struct {
     }
 
     pub fn isWatched(self: *Db, path: []const u8) bool {
+        // It's not worth checking self.cache here since it would need a conversion
+        // to UTF-16. Or, more accurately, I'm too lazy to make that change and the W
+        // version is the only verison that's actually called in the critical path
+        // (only vlc-watcher calls this function).
+
         const watched = self.db.one(u8, "SELECT watched FROM watched WHERE path=?", .{}, .{ .path = path }) catch {
             return false;
         };
         return watched != null and watched.? != 0;
+    }
+
+    fn initCache(self: *Db) !void {
+        var stmt = try self.db.prepare("SELECT pathw FROM watched");
+        defer stmt.deinit();
+
+        var iter = try stmt.iterator([]const u8, .{});
+        while (try iter.nextAlloc(self.cache.allocator, .{})) |path_bytes| {
+            defer self.cache.allocator.free(path_bytes);
+            const path_w = std.mem.bytesAsSlice(u16, @alignCast(@alignOf(u16), path_bytes));
+            try self.cache.update(path_w);
+        }
     }
 };
 
@@ -103,7 +134,7 @@ test "init" {
     const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ "zig-cache", "tmp", &tmp.sub_path, "test.sqlite" });
     defer std.testing.allocator.free(db_path);
 
-    var db = try Db.init(db_path);
+    var db = try Db.init(std.testing.allocator, db_path);
     defer db.deinit();
 
     const path = "C:\\Some\\Path\\file.mp4";
@@ -126,4 +157,35 @@ test "init" {
     try db.setWatchedW(pathw, false);
     try std.testing.expect(!db.isWatched(path));
     try std.testing.expect(!db.isWatchedW(pathw));
+}
+
+test "cache" {
+    const utf16Literal = std.unicode.utf8ToUtf16LeStringLiteral;
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ "zig-cache", "tmp", &tmp.sub_path, "test.sqlite" });
+    defer std.testing.allocator.free(db_path);
+
+    var db = try Db.init(std.testing.allocator, db_path);
+    defer db.deinit();
+
+    try db.setWatched("C:\\Some\\Path\\file.mp4", true);
+    try db.setWatched("C:\\Some\\Other\\file.mp4", true);
+    try db.setWatched("D:\\Yet\\Another\\file.mp4", true);
+
+    try db.initCache();
+
+    try std.testing.expect(db.cache.contains(utf16Literal("C:\\Some\\Path\\file.mp4")));
+    try std.testing.expect(db.cache.contains(utf16Literal("C:\\Some\\Other\\file.mp4")));
+    try std.testing.expect(db.cache.contains(utf16Literal("D:\\Yet\\Another\\file.mp4")));
+    try std.testing.expect(!db.cache.contains(utf16Literal("C:\\Some")));
+    try std.testing.expect(!db.cache.contains(utf16Literal("C:\\SomePathThatIsClose.mp4")));
+    try std.testing.expect(!db.cache.contains(utf16Literal("E:\\Yet\\Another\\file.mp4")));
+
+    try db.setWatched("C:\\Another\\Path\\file.mp4", true);
+
+    try std.testing.expect(db.cache.contains(utf16Literal("C:\\Some")));
+    try std.testing.expect(db.cache.contains(utf16Literal("C:\\SomePathThatIsClose.mp4")));
 }

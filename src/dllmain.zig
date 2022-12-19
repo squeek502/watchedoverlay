@@ -44,7 +44,7 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
             };
             defer global_allocator.free(sqlite_file_path);
 
-            db = Db.init(sqlite_file_path) catch return windows.FALSE;
+            db = Db.init(global_allocator, sqlite_file_path) catch return windows.FALSE;
             has_db = true;
         },
         windows_extra.DLL_PROCESS_DETACH => {
