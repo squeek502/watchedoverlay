@@ -10,10 +10,10 @@ pub const WatchedClassFactory = extern struct {
         unknown: com.IUnknown.VTable(Self),
         class_factory: com.IClassFactory.VTable(Self),
     };
-    const CreateFn = std.meta.FnPtr(fn (
+    const CreateFn = *const fn (
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
-    ) callconv(windows.WINAPI) windows.HRESULT);
+    ) callconv(windows.WINAPI) windows.HRESULT;
 
     vtable: *const Self.VTable,
     create_fn: CreateFn,

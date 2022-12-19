@@ -11,17 +11,17 @@ pub const IUnknown = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            QueryInterface: std.meta.FnPtr(fn (
+            QueryInterface: *const fn (
                 self: *T,
                 riid: ?*const windows.GUID,
                 ppvObject: ?*?*anyopaque,
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            AddRef: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            AddRef: *const fn (
                 self: *T,
-            ) callconv(windows.WINAPI) u32),
-            Release: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) u32,
+            Release: *const fn (
                 self: *T,
-            ) callconv(windows.WINAPI) u32),
+            ) callconv(windows.WINAPI) u32,
         };
     }
 };
@@ -37,22 +37,22 @@ pub const IShellIconOverlayIdentifier = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            IsMemberOf: std.meta.FnPtr(fn (
+            IsMemberOf: *const fn (
                 self: *T,
                 pwszPath: windows.LPCWSTR, // [in]
                 dwAttrib: windows.DWORD,
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            GetInfoOverlay: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            GetInfoOverlay: *const fn (
                 self: *T,
                 pwszIconFile: ?windows.LPWSTR, // [out]
                 cchMax: c_int,
                 pIndex: ?*c_int, // [out]
                 pdwFlags: ?*windows.DWORD, // [out]
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            GetPriority: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            GetPriority: *const fn (
                 self: *T,
                 pPriority: ?*c_int, // [out]
-            ) callconv(windows.WINAPI) windows.HRESULT),
+            ) callconv(windows.WINAPI) windows.HRESULT,
         };
     }
 };
@@ -68,16 +68,16 @@ pub const IClassFactory = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            CreateInstance: std.meta.FnPtr(fn (
+            CreateInstance: *const fn (
                 self: *T,
                 pUnkOuter: ?*IUnknown,
                 riid: ?*const windows.GUID,
                 ppvObject: ?*?*anyopaque,
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            LockServer: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            LockServer: *const fn (
                 self: *T,
                 fLock: windows.BOOL,
-            ) callconv(windows.WINAPI) windows.HRESULT),
+            ) callconv(windows.WINAPI) windows.HRESULT,
         };
     }
 };
@@ -93,12 +93,12 @@ pub const IShellExtInit = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            Initialize: std.meta.FnPtr(fn (
+            Initialize: *const fn (
                 self: *T,
                 pidlFolder: windows_extra.PCIDLIST_ABSOLUTE,
                 pdtobj: ?*IDataObject,
                 hkeyProgID: windows.HKEY,
-            ) callconv(windows.WINAPI) windows.HRESULT),
+            ) callconv(windows.WINAPI) windows.HRESULT,
         };
     }
 };
@@ -114,26 +114,26 @@ pub const IContextMenu = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            QueryContextMenu: std.meta.FnPtr(fn (
+            QueryContextMenu: *const fn (
                 self: *T,
                 hmenu: ?windows.HMENU,
                 indexMenu: windows.UINT,
                 idCmdFirst: windows.UINT,
                 idCmdLast: windows.UINT,
                 uFlags: windows.UINT,
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            InvokeCommand: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            InvokeCommand: *const fn (
                 self: *T,
                 pici: ?*CMINVOKECOMMANDINFO,
-            ) callconv(windows.WINAPI) windows.HRESULT),
-            GetCommandString: std.meta.FnPtr(fn (
+            ) callconv(windows.WINAPI) windows.HRESULT,
+            GetCommandString: *const fn (
                 self: *T,
                 idCmd: windows_extra.UINT_PTR,
                 uType: GCS,
                 pReserved: ?*windows.UINT,
                 pszName: ?[*]windows.CHAR,
                 cchMax: windows.UINT,
-            ) callconv(windows.WINAPI) windows.HRESULT),
+            ) callconv(windows.WINAPI) windows.HRESULT,
         };
     }
 };
@@ -197,11 +197,11 @@ pub const IDataObject = extern struct {
 
     pub fn VTable(comptime T: type) type {
         return extern struct {
-            GetData: std.meta.FnPtr(fn (
+            GetData: *const fn (
                 self: *T,
                 pformatetcIn: ?*FORMATETC,
                 pmedium: ?*STGMEDIUM,
-            ) callconv(windows.WINAPI) windows.HRESULT),
+            ) callconv(windows.WINAPI) windows.HRESULT,
             GetDataHere: *anyopaque,
             QueryGetData: *anyopaque,
             GetCanonicalFormatEtc: *anyopaque,

@@ -100,10 +100,7 @@ test "init" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
-    const tmp_path = try tmp.getFullPath(std.testing.allocator);
-    defer std.testing.allocator.free(tmp_path);
-
-    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ tmp_path, "test.sqlite" });
+    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ "zig-cache", "tmp", &tmp.sub_path, "test.sqlite" });
     defer std.testing.allocator.free(db_path);
 
     var db = try Db.init(db_path);
