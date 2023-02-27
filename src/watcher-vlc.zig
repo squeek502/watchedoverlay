@@ -149,7 +149,7 @@ fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
         }
     }
 
-    for (paths.items) |uri, i| {
+    for (paths.items, 0..) |uri, i| {
         const encoded_uri = try fullyEncodeUri(arena, uri);
         const parsed = try zuri.Uri.parse(encoded_uri, false);
         const trimmed_path = std.mem.trimLeft(u8, parsed.path, "/");

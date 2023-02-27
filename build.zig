@@ -1,44 +1,61 @@
 const std = @import("std");
 
 pub fn build(b: *std.build.Builder) void {
-    // Standard release options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const mode = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
-    const sqlite = b.addStaticLibrary("sqlite", null);
+    const sqlite = b.addStaticLibrary(.{
+        .name = "sqlite",
+        .target = target,
+        .optimize = mode,
+    });
     sqlite.addCSourceFile("lib/zig-sqlite/c/sqlite3.c", &[_][]const u8{"-std=c99"});
-    sqlite.setBuildMode(mode);
-    sqlite.setTarget(target);
     sqlite.addIncludePath("lib/zig-sqlite/c");
     sqlite.linkLibC();
 
-    const watched = b.addSharedLibrary("watched", "src/dllmain.zig", .{ .unversioned = {} });
-    watched.setBuildMode(mode);
-    watched.setTarget(target);
+    const zig_sqlite = b.createModule(.{
+        .source_file = .{ .path = "lib/zig-sqlite/sqlite.zig" },
+    });
+
+    const watched = b.addSharedLibrary(.{
+        .name = "watched",
+        .root_source_file = .{ .path = "src/dllmain.zig" },
+        .target = target,
+        .optimize = mode,
+    });
     watched.linkLibC();
     watched.linkLibrary(sqlite);
     watched.addIncludePath("lib/zig-sqlite/c");
     watched.addObjectFile("res/resource.res.obj");
-    watched.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
+    watched.addModule("sqlite", zig_sqlite);
     watched.install();
 
-    const watcher_vlc = b.addExecutable("watcher-vlc", "src/watcher-vlc.zig");
-    watcher_vlc.setBuildMode(mode);
-    watcher_vlc.setTarget(target);
+    const zuri = b.createModule(.{
+        .source_file = .{ .path = "lib/zuri/src/zuri.zig" },
+    });
+
+    const watcher_vlc = b.addExecutable(.{
+        .name = "watcher-vlc",
+        .root_source_file = .{ .path = "src/watcher-vlc.zig" },
+        .target = target,
+        .optimize = mode,
+    });
     watcher_vlc.linkLibC();
     watcher_vlc.linkLibrary(sqlite);
     watcher_vlc.addIncludePath("lib/zig-sqlite/c");
-    watcher_vlc.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
-    watcher_vlc.addPackage(.{ .name = "zuri", .source = .{ .path = "lib/zuri/src/zuri.zig" } });
+    watcher_vlc.addModule("sqlite", zig_sqlite);
+    watcher_vlc.addModule("zuri", zuri);
     watcher_vlc.install();
 
-    const main_tests = b.addTest("src/dllmain.zig");
+    const main_tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/dllmain.zig" },
+        .optimize = mode,
+        .target = target,
+    });
     main_tests.linkLibC();
     main_tests.linkLibrary(sqlite);
     main_tests.addIncludePath("lib/zig-sqlite/c");
-    main_tests.addPackage(.{ .name = "sqlite", .source = .{ .path = "lib/zig-sqlite/sqlite.zig" } });
-    main_tests.setBuildMode(mode);
+    main_tests.addModule("sqlite", zig_sqlite);
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
