@@ -28,6 +28,9 @@ pub const Db = struct {
             \\);
         , .{}, .{});
 
+        // Retry transactions for 250ms before giving up and returning SQLiteBusy
+        _ = sqlite.c.sqlite3_busy_timeout(self.db.db, 250);
+
         try self.initCache();
 
         return self;
@@ -42,40 +45,25 @@ pub const Db = struct {
         const bytes = std.mem.sliceAsBytes(pathw);
         const blob = sqlite.Blob{ .data = bytes };
 
-        while (true) {
-            if (watched) {
-                var stmt = self.db.prepare(
-                    "INSERT OR REPLACE INTO watched(path, pathw, watched) VALUES(?, ?, ?)",
-                ) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
-                defer stmt.deinit();
+        if (watched) {
+            var stmt = try self.db.prepare("INSERT OR REPLACE INTO watched(path, pathw, watched) VALUES(?, ?, ?)");
+            defer stmt.deinit();
 
-                var path_utf8_buf: [std.os.windows.PATH_MAX_WIDE]u8 = undefined;
-                const utf8_len = try std.unicode.utf16leToUtf8(&path_utf8_buf, pathw);
-                const path_utf8 = path_utf8_buf[0..utf8_len];
+            var path_utf8_buf: [std.os.windows.PATH_MAX_WIDE]u8 = undefined;
+            const utf8_len = try std.unicode.utf16leToUtf8(&path_utf8_buf, pathw);
+            const path_utf8 = path_utf8_buf[0..utf8_len];
 
-                stmt.exec(.{}, .{
-                    .path = path_utf8,
-                    .pathw = blob,
-                    .watched = watched,
-                }) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
+            try stmt.exec(.{}, .{
+                .path = path_utf8,
+                .pathw = blob,
+                .watched = watched,
+            });
 
-                try self.cache.update(pathw);
-                break;
-            } else {
-                self.db.exec("DELETE FROM watched WHERE pathw=?", .{}, .{
-                    .pathw = blob,
-                }) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
-                break;
-            }
+            try self.cache.update(pathw);
+        } else {
+            try self.db.exec("DELETE FROM watched WHERE pathw=?", .{}, .{
+                .pathw = blob,
+            });
         }
     }
 
@@ -93,42 +81,27 @@ pub const Db = struct {
     }
 
     pub fn setWatched(self: *Db, path: []const u8, watched: bool) !void {
-        while (true) {
-            if (watched) {
-                var stmt = self.db.prepare(
-                    "INSERT OR REPLACE INTO watched(path, pathw, watched) VALUES(?, ?, ?)",
-                ) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
-                defer stmt.deinit();
+        if (watched) {
+            var stmt = try self.db.prepare("INSERT OR REPLACE INTO watched(path, pathw, watched) VALUES(?, ?, ?)");
+            defer stmt.deinit();
 
-                var pathw_buf: [std.os.windows.PATH_MAX_WIDE]u16 = undefined;
-                const pathw_len = try std.unicode.utf8ToUtf16Le(&pathw_buf, path);
-                const pathw = pathw_buf[0..pathw_len];
-                const bytes = std.mem.sliceAsBytes(pathw);
-                const blob = sqlite.Blob{ .data = bytes };
+            var pathw_buf: [std.os.windows.PATH_MAX_WIDE]u16 = undefined;
+            const pathw_len = try std.unicode.utf8ToUtf16Le(&pathw_buf, path);
+            const pathw = pathw_buf[0..pathw_len];
+            const bytes = std.mem.sliceAsBytes(pathw);
+            const blob = sqlite.Blob{ .data = bytes };
 
-                stmt.exec(.{}, .{
-                    .path = path,
-                    .pathw = blob,
-                    .watched = watched,
-                }) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
+            try stmt.exec(.{}, .{
+                .path = path,
+                .pathw = blob,
+                .watched = watched,
+            });
 
-                try self.cache.update(pathw);
-                break;
-            } else {
-                self.db.exec("DELETE FROM watched WHERE path=?", .{}, .{
-                    .path = path,
-                }) catch |err| switch (err) {
-                    error.SQLiteBusy, error.SQLiteLocked => continue, // retry
-                    else => |e| return e,
-                };
-                break;
-            }
+            try self.cache.update(pathw);
+        } else {
+            try self.db.exec("DELETE FROM watched WHERE path=?", .{}, .{
+                .path = path,
+            });
         }
     }
 
