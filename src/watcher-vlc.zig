@@ -9,7 +9,7 @@ const sqlite_db_name = "watched.sqlite";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer std.debug.assert(gpa.deinit() == false);
+    defer std.debug.assert(gpa.deinit() == .ok);
     const allocator = gpa.allocator();
 
     defer if (cached_path != null) allocator.free(cached_path.?);

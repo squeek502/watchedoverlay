@@ -28,7 +28,7 @@ pub fn build(b: *std.build.Builder) void {
     watched.addIncludePath("lib/zig-sqlite/c");
     watched.addObjectFile("res/resource.res.obj");
     watched.addModule("sqlite", zig_sqlite);
-    watched.install();
+    b.installArtifact(watched);
 
     const zuri = b.createModule(.{
         .source_file = .{ .path = "lib/zuri/src/zuri.zig" },
@@ -45,7 +45,7 @@ pub fn build(b: *std.build.Builder) void {
     watcher_vlc.addIncludePath("lib/zig-sqlite/c");
     watcher_vlc.addModule("sqlite", zig_sqlite);
     watcher_vlc.addModule("zuri", zuri);
-    watcher_vlc.install();
+    b.installArtifact(watcher_vlc);
 
     const main_tests = b.addTest(.{
         .root_source_file = .{ .path = "src/dllmain.zig" },
