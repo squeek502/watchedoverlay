@@ -3,6 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.build.Builder) void {
     const mode = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
+    const single_threaded = b.option(bool, "single-threaded", "build in single threaded mode") orelse false;
 
     const sqlite = b.addStaticLibrary(.{
         .name = "sqlite",
@@ -22,6 +23,7 @@ pub fn build(b: *std.build.Builder) void {
         .root_source_file = .{ .path = "src/dllmain.zig" },
         .target = target,
         .optimize = mode,
+        .single_threaded = single_threaded,
     });
     watched.linkLibC();
     watched.linkLibrary(sqlite);
@@ -39,6 +41,7 @@ pub fn build(b: *std.build.Builder) void {
         .root_source_file = .{ .path = "src/watcher-vlc.zig" },
         .target = target,
         .optimize = mode,
+        .single_threaded = single_threaded,
     });
     watcher_vlc.linkLibC();
     watcher_vlc.linkLibrary(sqlite);
