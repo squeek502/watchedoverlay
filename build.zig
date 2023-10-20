@@ -10,8 +10,8 @@ pub fn build(b: *std.build.Builder) void {
         .target = target,
         .optimize = mode,
     });
-    sqlite.addCSourceFile("lib/zig-sqlite/c/sqlite3.c", &[_][]const u8{"-std=c99"});
-    sqlite.addIncludePath("lib/zig-sqlite/c");
+    sqlite.addCSourceFile(.{ .file = .{ .path = "lib/zig-sqlite/c/sqlite3.c" }, .flags = &.{"-std=c99"} });
+    sqlite.addIncludePath(.{ .path = "lib/zig-sqlite/c" });
     sqlite.linkLibC();
 
     const zig_sqlite = b.createModule(.{
@@ -27,8 +27,8 @@ pub fn build(b: *std.build.Builder) void {
     });
     watched.linkLibC();
     watched.linkLibrary(sqlite);
-    watched.addIncludePath("lib/zig-sqlite/c");
-    watched.addObjectFile("res/resource.res.obj");
+    watched.addIncludePath(.{ .path = "lib/zig-sqlite/c" });
+    watched.addObjectFile(.{ .path = "res/resource.res" });
     watched.addModule("sqlite", zig_sqlite);
     b.installArtifact(watched);
 
@@ -45,7 +45,7 @@ pub fn build(b: *std.build.Builder) void {
     });
     watcher_vlc.linkLibC();
     watcher_vlc.linkLibrary(sqlite);
-    watcher_vlc.addIncludePath("lib/zig-sqlite/c");
+    watcher_vlc.addIncludePath(.{ .path = "lib/zig-sqlite/c" });
     watcher_vlc.addModule("sqlite", zig_sqlite);
     watcher_vlc.addModule("zuri", zuri);
     b.installArtifact(watcher_vlc);
@@ -57,7 +57,7 @@ pub fn build(b: *std.build.Builder) void {
     });
     main_tests.linkLibC();
     main_tests.linkLibrary(sqlite);
-    main_tests.addIncludePath("lib/zig-sqlite/c");
+    main_tests.addIncludePath(.{ .path = "lib/zig-sqlite/c" });
     main_tests.addModule("sqlite", zig_sqlite);
 
     const test_step = b.step("test", "Run library tests");
@@ -79,7 +79,7 @@ pub fn build(b: *std.build.Builder) void {
     dist_watcher.step.dependOn(b.getInstallStep());
 
     const dist_scripts = b.addInstallDirectory(.{
-        .source_dir = "dist",
+        .source_dir = .{ .path = "dist" },
         .install_dir = std.build.InstallDir{ .custom = "dist" },
         .install_subdir = "",
     });

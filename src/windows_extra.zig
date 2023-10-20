@@ -36,20 +36,20 @@ pub const SHCNF_PATHW: windows.UINT = 0x0005;
 const UnsignedHRESULT = std.meta.Int(.unsigned, @typeInfo(windows.HRESULT).Int.bits);
 pub fn MAKE_HRESULT(severity: u1, facility: u16, code: u16) windows.HRESULT {
     var hr: UnsignedHRESULT = (@as(UnsignedHRESULT, severity) << 31) | (@as(UnsignedHRESULT, facility) << 16) | code;
-    return @bitCast(windows.HRESULT, hr);
+    return @bitCast(hr);
 }
 pub fn HRESULT_CODE(hr: windows.HRESULT) u16 {
-    return @intCast(u16, @bitCast(UnsignedHRESULT, hr) & 0xFFFF);
+    return @intCast(@as(UnsignedHRESULT, @bitCast(hr)) & 0xFFFF);
 }
 pub fn HRESULT_FACILITY(hr: windows.HRESULT) u16 {
-    return @intCast(u16, (@bitCast(UnsignedHRESULT, hr) >> 16) & 0x1FFF);
+    return @intCast((@as(UnsignedHRESULT, @bitCast(hr)) >> 16) & 0x1FFF);
 }
 pub fn HRESULT_SEVERITY(hr: windows.HRESULT) u1 {
-    return @intCast(u1, (@bitCast(UnsignedHRESULT, hr) >> 31) & 0x1);
+    return @intCast((@as(UnsignedHRESULT, @bitCast(hr)) >> 31) & 0x1);
 }
 pub fn HRESULT_FROM_WIN32(err: windows.Win32Error) windows.HRESULT {
-    var hr: UnsignedHRESULT = (@as(UnsignedHRESULT, @enumToInt(err)) & 0x0000FFFF) | (@as(UnsignedHRESULT, FACILITY_WIN32) << 16) | @as(UnsignedHRESULT, 0x80000000);
-    return @bitCast(windows.HRESULT, hr);
+    var hr: UnsignedHRESULT = (@as(UnsignedHRESULT, @intFromEnum(err)) & 0x0000FFFF) | (@as(UnsignedHRESULT, FACILITY_WIN32) << 16) | @as(UnsignedHRESULT, 0x80000000);
+    return @bitCast(hr);
 }
 
 test "HRESULT" {
@@ -66,11 +66,11 @@ pub const FACILITY_NULL: u16 = 0;
 pub const FACILITY_WIN32: u16 = 7;
 
 pub fn HIWORD(x: windows.DWORD) windows.WORD {
-    return @intCast(windows.WORD, (x >> 16) & 0xFFFF);
+    return @intCast((x >> 16) & 0xFFFF);
 }
 
 pub fn LOWORD(x: windows.DWORD) windows.WORD {
-    return @intCast(windows.WORD, x & 0xFFFF);
+    return @intCast(x & 0xFFFF);
 }
 
 // An unsigned integer, whose length is dependent on processor word size.
@@ -90,8 +90,8 @@ pub const MF_BYPOSITION: windows.UINT = 0x00000400;
 pub const ISIOI_ICONFILE: windows.DWORD = 0x1;
 pub const ISIOI_ICONINDEX: windows.DWORD = 0x2;
 
-pub const CLASS_E_NOAGGREGATION: windows.HRESULT = @bitCast(c_long, @as(c_ulong, 0x80040110));
-pub const CLASS_E_CLASSNOTAVAILABLE: windows.HRESULT = @bitCast(c_long, @as(c_ulong, 80040111));
+pub const CLASS_E_NOAGGREGATION: windows.HRESULT = @bitCast(@as(c_ulong, 0x80040110));
+pub const CLASS_E_CLASSNOTAVAILABLE: windows.HRESULT = @bitCast(@as(c_ulong, 80040111));
 
 pub const S_FALSE: windows.HRESULT = 1;
 

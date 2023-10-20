@@ -94,7 +94,7 @@ pub const WatchedOverlay = extern struct {
             return windows.E_INVALIDARG;
         }
 
-        std.mem.copy(u16, (pwszIconFile.?)[0..@intCast(usize, cchMax)], main.dll_file_name_w[0 .. main.dll_file_name_w.len + 1]);
+        std.mem.copy(u16, (pwszIconFile.?)[0..@intCast(cchMax)], main.dll_file_name_w[0 .. main.dll_file_name_w.len + 1]);
 
         pIndex.?.* = 0;
         pdwFlags.?.* = windows_extra.ISIOI_ICONFILE | windows_extra.ISIOI_ICONINDEX;

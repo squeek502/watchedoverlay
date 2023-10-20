@@ -48,7 +48,7 @@ pub const WatchedContextMenu = extern struct {
         if (com.IsEqualIID(riid.?, Self.IID) or com.IsEqualIID(riid.?, com.IShellExtInit.IID)) {
             ppvObject.?.* = self;
         } else if (com.IsEqualIID(riid.?, com.IContextMenu.IID)) {
-            ppvObject.?.* = @intToPtr(?*anyopaque, @ptrToInt(&self.vtable_icontextmenu));
+            ppvObject.?.* = @ptrFromInt(@intFromPtr(&self.vtable_icontextmenu));
         } else {
             ppvObject.?.* = null;
             return windows.E_NOINTERFACE;
@@ -109,7 +109,7 @@ pub const WatchedContextMenu = extern struct {
         }
         defer com.ReleaseStgMedium(&stg);
 
-        const hdrop: ?windows_extra.HDROP = @ptrCast(?windows_extra.HDROP, windows_extra.GlobalLock(stg.Anonymous.hGlobal.?));
+        const hdrop: ?windows_extra.HDROP = @ptrCast(windows_extra.GlobalLock(stg.Anonymous.hGlobal.?));
         if (hdrop == null) {
             return windows.E_INVALIDARG;
         }
@@ -199,7 +199,7 @@ pub const WatchedContextMenu = extern struct {
         if (pici == null) {
             return windows.E_INVALIDARG;
         }
-        const id = @intCast(windows.DWORD, @ptrToInt(pici.?.lpVerb));
+        const id = @as(windows.DWORD, @intCast(@intFromPtr(pici.?.lpVerb)));
         if (windows_extra.HIWORD(id) != 0) {
             return windows.E_INVALIDARG;
         }

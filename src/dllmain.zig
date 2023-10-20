@@ -26,7 +26,7 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
     switch (dwReason) {
         windows_extra.DLL_PROCESS_ATTACH => {
             dll_file_name_w = windows.GetModuleFileNameW(
-                @ptrCast(windows.HMODULE, hinstDLL),
+                @ptrCast(hinstDLL),
                 &dll_file_name_w_buf,
                 dll_file_name_w_buf.len,
             ) catch {

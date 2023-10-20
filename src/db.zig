@@ -124,7 +124,7 @@ pub const Db = struct {
         var iter = try stmt.iterator([]const u8, .{});
         while (try iter.nextAlloc(self.cache.allocator, .{})) |path_bytes| {
             defer self.cache.allocator.free(path_bytes);
-            const path_w = std.mem.bytesAsSlice(u16, @alignCast(@alignOf(u16), path_bytes));
+            const path_w = std.mem.bytesAsSlice(u16, @as([]align(@alignOf(u16)) const u8, @alignCast(path_bytes)));
             try self.cache.update(path_w);
         }
     }
