@@ -28,7 +28,7 @@ pub fn build(b: *std.build.Builder) void {
     watched.linkLibC();
     watched.linkLibrary(sqlite);
     watched.addIncludePath(.{ .path = "lib/zig-sqlite/c" });
-    watched.addObjectFile(.{ .path = "res/resource.res" });
+    watched.addWin32ResourceFile(.{ .file = .{ .path = "res/resource.rc" } });
     watched.addModule("sqlite", zig_sqlite);
     b.installArtifact(watched);
 
