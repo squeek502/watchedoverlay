@@ -138,16 +138,12 @@ pub const WatchedContextMenu = extern struct {
         if (num_paths == 0) {
             return &[_][:0]const u16{};
         }
-        var paths = try allocator.alloc([:0]const u16, num_paths);
-        errdefer allocator.free(paths);
-        // initialize all the elements to 0-sized slices so we can unconditionally free in an errdefer
-        for (paths) |*path| {
-            path.* = &[_:0]u16{};
-        }
+        var paths = try std.ArrayListUnmanaged([:0]const u16).initCapacity(allocator, num_paths);
         errdefer {
-            for (paths) |path| {
+            for (paths.items) |path| {
                 allocator.free(path);
             }
+            paths.deinit(allocator);
         }
 
         var path_buf: [windows.PATH_MAX_WIDE]u16 = undefined;
@@ -161,10 +157,13 @@ pub const WatchedContextMenu = extern struct {
             var path = try allocator.allocSentinel(u16, len, 0);
             std.mem.copy(u16, path[0..len], path_buf[0..len]);
 
-            paths[index] = path;
+            paths.appendAssumeCapacity(path);
         }
 
-        return paths;
+        // Since we know that the ArrayListUnmanaged is precisely sized, so we can
+        // just return the slice and avoid calling toOwnedSlice/deinit
+        std.debug.assert(paths.items.len == paths.capacity);
+        return paths.items;
     }
 
     pub fn QueryContextMenu(
