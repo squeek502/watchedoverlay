@@ -119,6 +119,7 @@ pub const WatchedContextMenu = extern struct {
             error.OutOfMemory => return windows.E_OUTOFMEMORY,
             error.DragQueryFileError => return windows.E_INVALIDARG,
         };
+        std.debug.assert(self.paths == null);
         self.paths = paths.ptr;
         self.num_paths = paths.len;
 
