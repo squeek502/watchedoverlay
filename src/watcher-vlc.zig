@@ -34,10 +34,19 @@ pub fn main() !void {
     defer db.deinit();
 
     while (true) {
-        {
-            var ini_file = try std.fs.cwd().openFile(ini_file_path, .{});
+        update: {
+            var ini_file = std.fs.cwd().openFile(ini_file_path, .{}) catch |err| {
+                std.log.err("unable to open ini file {s}: {s}", .{ ini_file_path, @errorName(err) });
+                break :update;
+            };
             defer ini_file.close();
-            try updateFromIni(allocator, ini_file, &db);
+            updateFromIni(allocator, ini_file, &db) catch |err| switch (err) {
+                error.OutOfMemory => |e| return e,
+                else => {
+                    std.log.err("unable to update from ini: {s}", .{@errorName(err)});
+                    break :update;
+                },
+            };
         }
 
         std.time.sleep(1 * std.time.ns_per_s);
@@ -48,7 +57,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
     const stat = try file.stat();
     // if modified time hasn't changed, then there's nothing to update
     if (cached_last_modified != null and stat.mtime == cached_last_modified.?) {
-        std.debug.print("unchanged\n", .{});
+        std.log.debug("last modified time unchanged", .{});
         return;
     }
     cached_last_modified = stat.mtime;
@@ -63,7 +72,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
 
     const recents_header_pos = std.mem.indexOf(u8, contents, "[RecentsMRL]");
     if (recents_header_pos == null) {
-        return error.UnexpectedIniContents;
+        return error.IniNoRecents;
     }
     const end_of_recents_section = std.mem.indexOfPos(u8, contents, recents_header_pos.?, "\n[") orelse contents.len;
     const recents_slice = contents[(recents_header_pos.?)..end_of_recents_section];
@@ -76,7 +85,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
                 break :list line[prefix.len..];
             }
         }
-        return error.UnexpectedIniContents;
+        return error.IniNoList;
     };
 
     const paths = try parseList(arena, list);
@@ -86,7 +95,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
         // an affect on things that are in the recent items but we want to mark as unwatched
         if (cached_path == null or !std.mem.eql(u8, path, cached_path.?)) {
             if (!db.isWatched(path)) {
-                std.debug.print("Marking as watched: {s}\n", .{path});
+                std.log.debug("marking as watched: {s}", .{path});
                 const path_w = try std.unicode.utf8ToUtf16LeAllocZ(arena, path);
                 try db.setWatchedW(path_w, true);
 
@@ -110,7 +119,7 @@ const ParseState = enum {
     unquoted,
 };
 
-fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
+fn parseList(arena: std.mem.Allocator, list_str: []const u8) error{OutOfMemory}![]const []const u8 {
     var index: usize = 0;
     var state: ParseState = .initial;
     var start_index: usize = 0;
@@ -149,19 +158,39 @@ fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
         }
     }
 
-    for (paths.items, 0..) |uri, i| {
+    var valid_paths = try std.ArrayList([]const u8).initCapacity(arena, paths.items.len);
+
+    for (paths.items) |uri| {
         const encoded_uri = try fullyEncodeUri(arena, uri);
-        const parsed = try zuri.Uri.parse(encoded_uri, false);
+        const parsed = zuri.Uri.parse(encoded_uri, false) catch |err| switch (err) {
+            error.InvalidCharacter, error.EmptyUri => {
+                std.log.warn("failed to parse URI '{s}': {s}", .{ encoded_uri, @errorName(err) });
+                continue;
+            },
+        };
+        if (!std.mem.eql(u8, parsed.scheme, "file")) {
+            std.log.debug("skipped URI with scheme '{s}'", .{parsed.scheme});
+            continue;
+        }
         const trimmed_path = std.mem.trimLeft(u8, parsed.path, "/");
-        const decoded_path = try zuri.Uri.decode(arena, trimmed_path);
+        const decoded_path = zuri.Uri.decode(arena, trimmed_path) catch |err| switch (err) {
+            error.OutOfMemory => |e| return e,
+            error.InvalidCharacter => {
+                std.log.warn("failed to decode URI path '{s}': {s}", .{ trimmed_path, @errorName(err) });
+                continue;
+            },
+        };
         const path = decoded_path orelse trimmed_path;
         // just dupe the memory here to avoid const madness
         var path_dupe = try arena.dupe(u8, path);
-        const normalized_path_len = try std.os.windows.normalizePath(u8, path_dupe);
-        paths.items[i] = path_dupe[0..normalized_path_len];
+        const normalized_path_len = std.os.windows.normalizePath(u8, path_dupe) catch |err| {
+            std.log.warn("failed to normalize path '{s}': {s}", .{ path_dupe, @errorName(err) });
+            continue;
+        };
+        valid_paths.appendAssumeCapacity(path_dupe[0..normalized_path_len]);
     }
 
-    return paths.toOwnedSlice();
+    return valid_paths.toOwnedSlice();
 }
 
 // Converts [ and ] to %5B and %5D, as [ and ] are technically invalid but
