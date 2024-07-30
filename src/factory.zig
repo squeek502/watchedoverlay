@@ -46,7 +46,7 @@ pub const WatchedClassFactory = extern struct {
 
         if (self.ref == 0) {
             main.global_allocator.destroy(self);
-            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .Monotonic);
+            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .monotonic);
             return 0;
         }
 
@@ -73,9 +73,9 @@ pub const WatchedClassFactory = extern struct {
         _ = self;
 
         if (fLock != 0) {
-            _ = @atomicRmw(windows.LONG, &main.lock_count, .Add, 1, .Monotonic);
+            _ = @atomicRmw(windows.LONG, &main.lock_count, .Add, 1, .monotonic);
         } else {
-            _ = @atomicRmw(windows.LONG, &main.lock_count, .Sub, 1, .Monotonic);
+            _ = @atomicRmw(windows.LONG, &main.lock_count, .Sub, 1, .monotonic);
         }
         return windows.S_OK;
     }
@@ -99,7 +99,7 @@ pub const WatchedClassFactory = extern struct {
         // QueryInterface call
         _ = obj.vtable.unknown.Release(obj);
 
-        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .Monotonic);
+        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .monotonic);
     }
 
     pub const vtable_impl: Self.VTable = .{

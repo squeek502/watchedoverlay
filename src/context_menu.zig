@@ -69,7 +69,7 @@ pub const WatchedContextMenu = extern struct {
 
         if (self.ref == 0) {
             self.destroy(main.global_allocator);
-            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .Monotonic);
+            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .monotonic);
             return 0;
         }
 
@@ -156,7 +156,7 @@ pub const WatchedContextMenu = extern struct {
             }
 
             var path = try allocator.allocSentinel(u16, len, 0);
-            std.mem.copy(u16, path[0..len], path_buf[0..len]);
+            @memcpy(path[0..len], path_buf[0..len]);
 
             paths.appendAssumeCapacity(path);
         }
@@ -240,11 +240,14 @@ pub const WatchedContextMenu = extern struct {
         const help_text_w = std.unicode.utf8ToUtf16LeStringLiteral(help_text);
         switch (uType) {
             .HELPTEXTA => {
-                std.mem.copy(u8, (pszName.?)[0..cchMax], help_text[0..help_text.len]);
+                if (help_text.len + 1 > cchMax) return windows_extra.HRESULT_FROM_WIN32(.INSUFFICIENT_BUFFER);
+                @memcpy((pszName.?)[0..help_text.len], help_text[0..help_text.len]);
                 (pszName.?)[help_text.len] = 0;
             },
             .HELPTEXTW => {
-                std.mem.copy(u8, (pszName.?)[0..cchMax], std.mem.sliceAsBytes(help_text_w[0 .. help_text_w.len + 1]));
+                if (help_text_w.len + 1 > cchMax) return windows_extra.HRESULT_FROM_WIN32(.INSUFFICIENT_BUFFER);
+                var name_dest_w: [*]windows.WCHAR = @ptrCast(@alignCast(pszName.?));
+                @memcpy(name_dest_w[0 .. help_text_w.len + 1], help_text_w[0 .. help_text_w.len + 1]);
             },
             else => return windows.E_INVALIDARG,
         }
@@ -273,7 +276,7 @@ pub const WatchedContextMenu = extern struct {
         // QueryInterface call
         _ = obj.vtable_ishellextinit.unknown.Release(obj);
 
-        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .Monotonic);
+        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .monotonic);
 
         return result;
     }
@@ -303,17 +306,17 @@ pub const WatchedContextMenu = extern struct {
         riid: ?*const windows.GUID,
         ppvObject: ?*?*anyopaque,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return QueryInterface(self, riid, ppvObject);
     }
 
     pub fn AddRef_IContextMenu(field_ptr: **VTable_IContextMenu) callconv(windows.WINAPI) u32 {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return AddRef(self);
     }
 
     pub fn Release_IContextMenu(field_ptr: **VTable_IContextMenu) callconv(windows.WINAPI) u32 {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return Release(self);
     }
 
@@ -325,7 +328,7 @@ pub const WatchedContextMenu = extern struct {
         idCmdLast: windows.UINT,
         uFlags: windows.UINT,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return QueryContextMenu(self, hmenu, indexMenu, idCmdFirst, idCmdLast, uFlags);
     }
 
@@ -333,7 +336,7 @@ pub const WatchedContextMenu = extern struct {
         field_ptr: **VTable_IContextMenu,
         pici: ?*com.CMINVOKECOMMANDINFO,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return InvokeCommand(self, pici);
     }
 
@@ -345,7 +348,7 @@ pub const WatchedContextMenu = extern struct {
         pszName: ?[*]windows.CHAR,
         cchMax: windows.UINT,
     ) callconv(windows.WINAPI) windows.HRESULT {
-        var self = @fieldParentPtr(Self, "vtable_icontextmenu", field_ptr);
+        const self: *Self = @fieldParentPtr("vtable_icontextmenu", field_ptr);
         return GetCommandString(self, idCmd, uType, pReserved, pszName, cchMax);
     }
 

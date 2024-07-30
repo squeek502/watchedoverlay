@@ -50,7 +50,7 @@ pub const Db = struct {
             defer stmt.deinit();
 
             var path_utf8_buf: [std.os.windows.PATH_MAX_WIDE]u8 = undefined;
-            const utf8_len = try std.unicode.utf16leToUtf8(&path_utf8_buf, pathw);
+            const utf8_len = try std.unicode.utf16LeToUtf8(&path_utf8_buf, pathw);
             const path_utf8 = path_utf8_buf[0..utf8_len];
 
             try stmt.exec(.{}, .{

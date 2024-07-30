@@ -35,7 +35,7 @@ pub const SHCNF_PATHW: windows.UINT = 0x0005;
 
 const UnsignedHRESULT = std.meta.Int(.unsigned, @typeInfo(windows.HRESULT).Int.bits);
 pub fn MAKE_HRESULT(severity: u1, facility: u16, code: u16) windows.HRESULT {
-    var hr: UnsignedHRESULT = (@as(UnsignedHRESULT, severity) << 31) | (@as(UnsignedHRESULT, facility) << 16) | code;
+    const hr: UnsignedHRESULT = (@as(UnsignedHRESULT, severity) << 31) | (@as(UnsignedHRESULT, facility) << 16) | code;
     return @bitCast(hr);
 }
 pub fn HRESULT_CODE(hr: windows.HRESULT) u16 {
@@ -48,7 +48,7 @@ pub fn HRESULT_SEVERITY(hr: windows.HRESULT) u1 {
     return @intCast((@as(UnsignedHRESULT, @bitCast(hr)) >> 31) & 0x1);
 }
 pub fn HRESULT_FROM_WIN32(err: windows.Win32Error) windows.HRESULT {
-    var hr: UnsignedHRESULT = (@as(UnsignedHRESULT, @intFromEnum(err)) & 0x0000FFFF) | (@as(UnsignedHRESULT, FACILITY_WIN32) << 16) | @as(UnsignedHRESULT, 0x80000000);
+    const hr: UnsignedHRESULT = (@as(UnsignedHRESULT, @intFromEnum(err)) & 0x0000FFFF) | (@as(UnsignedHRESULT, FACILITY_WIN32) << 16) | @as(UnsignedHRESULT, 0x80000000);
     return @bitCast(hr);
 }
 

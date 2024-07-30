@@ -25,15 +25,11 @@ pub fn DllMain(hinstDLL: windows.HINSTANCE, dwReason: windows.DWORD, lpReserved:
     _ = lpReserved;
     switch (dwReason) {
         windows_extra.DLL_PROCESS_ATTACH => {
-            dll_file_name_w = windows.GetModuleFileNameW(
-                @ptrCast(hinstDLL),
-                &dll_file_name_w_buf,
-                dll_file_name_w_buf.len,
-            ) catch {
-                return windows.FALSE;
-            };
+            const len_w = windows.kernel32.GetModuleFileNameW(@ptrCast(hinstDLL), &dll_file_name_w_buf, dll_file_name_w_buf.len);
+            if (len_w == 0) return windows.FALSE;
+            dll_file_name_w = dll_file_name_w_buf[0..len_w :0];
 
-            const len = std.unicode.utf16leToUtf8(&dll_file_name_buf, dll_file_name_w) catch {
+            const len = std.unicode.utf16LeToUtf8(&dll_file_name_buf, dll_file_name_w) catch {
                 return windows.FALSE;
             };
             dll_file_name = dll_file_name_buf[0..len];

@@ -14,7 +14,7 @@ pub fn main() !void {
 
     defer if (cached_path != null) allocator.free(cached_path.?);
 
-    var ini_file_path = ini_file_path: {
+    const ini_file_path = ini_file_path: {
         const appdata_path = try std.process.getEnvVarOwned(allocator, "APPDATA");
         defer allocator.free(appdata_path);
 
@@ -23,7 +23,7 @@ pub fn main() !void {
     defer allocator.free(ini_file_path);
 
     var db = db: {
-        var exe_dir = try std.fs.selfExeDirPathAlloc(allocator);
+        const exe_dir = try std.fs.selfExeDirPathAlloc(allocator);
         defer allocator.free(exe_dir);
 
         const sqlite_file_path = try std.fs.path.joinZ(allocator, &.{ exe_dir, sqlite_db_name });
@@ -45,7 +45,7 @@ pub fn main() !void {
 }
 
 fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !void {
-    var stat = try file.stat();
+    const stat = try file.stat();
     // if modified time hasn't changed, then there's nothing to update
     if (cached_last_modified != null and stat.mtime == cached_last_modified.?) {
         std.debug.print("unchanged\n", .{});
@@ -57,19 +57,19 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
     // the end of this function
     var arena_allocator = std.heap.ArenaAllocator.init(_allocator);
     defer arena_allocator.deinit();
-    var arena = arena_allocator.allocator();
+    const arena = arena_allocator.allocator();
 
     var contents = try file.readToEndAlloc(arena, std.math.maxInt(usize));
 
-    var recents_header_pos = std.mem.indexOf(u8, contents, "[RecentsMRL]");
+    const recents_header_pos = std.mem.indexOf(u8, contents, "[RecentsMRL]");
     if (recents_header_pos == null) {
         return error.UnexpectedIniContents;
     }
-    var end_of_recents_section = std.mem.indexOfPos(u8, contents, recents_header_pos.?, "\n[") orelse contents.len;
-    var recents_slice = contents[(recents_header_pos.?)..end_of_recents_section];
+    const end_of_recents_section = std.mem.indexOfPos(u8, contents, recents_header_pos.?, "\n[") orelse contents.len;
+    const recents_slice = contents[(recents_header_pos.?)..end_of_recents_section];
 
-    var list = list: {
-        var line_iterator = std.mem.tokenize(u8, recents_slice, "\r\n");
+    const list = list: {
+        var line_iterator = std.mem.tokenizeAny(u8, recents_slice, "\r\n");
         while (line_iterator.next()) |line| {
             const prefix = "list=";
             if (std.mem.startsWith(u8, line, prefix)) {
@@ -79,7 +79,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
         return error.UnexpectedIniContents;
     };
 
-    var paths = try parseList(arena, list);
+    const paths = try parseList(arena, list);
     for (paths) |path| {
         // for now, we just add the first item and only if its different than
         // the last path we saw in order to allow the context menu toggling to have
@@ -87,7 +87,7 @@ fn updateFromIni(_allocator: std.mem.Allocator, file: std.fs.File, db: *Db) !voi
         if (cached_path == null or !std.mem.eql(u8, path, cached_path.?)) {
             if (!db.isWatched(path)) {
                 std.debug.print("Marking as watched: {s}\n", .{path});
-                var path_w = try std.unicode.utf8ToUtf16LeWithNull(arena, path);
+                const path_w = try std.unicode.utf8ToUtf16LeAllocZ(arena, path);
                 try db.setWatchedW(path_w, true);
 
                 // need to notify the shell that the file was upated
@@ -153,18 +153,18 @@ fn parseList(arena: std.mem.Allocator, list_str: []const u8) ![][]const u8 {
         const encoded_uri = try fullyEncodeUri(arena, uri);
         const parsed = try zuri.Uri.parse(encoded_uri, false);
         const trimmed_path = std.mem.trimLeft(u8, parsed.path, "/");
-        var decoded_path = try zuri.Uri.decode(arena, trimmed_path);
-        var path = decoded_path orelse trimmed_path;
+        const decoded_path = try zuri.Uri.decode(arena, trimmed_path);
+        const path = decoded_path orelse trimmed_path;
         // just dupe the memory here to avoid const madness
         var path_dupe = try arena.dupe(u8, path);
-        var normalized_path_len = try std.os.windows.normalizePath(u8, path_dupe);
+        const normalized_path_len = try std.os.windows.normalizePath(u8, path_dupe);
         paths.items[i] = path_dupe[0..normalized_path_len];
     }
 
     return paths.toOwnedSlice();
 }
 
-// Converts [ and ] to %5B and %5D, as [ and ] are techinically invalid but
+// Converts [ and ] to %5B and %5D, as [ and ] are technically invalid but
 // VLC doesn't urlencode them.
 fn fullyEncodeUri(allocator: std.mem.Allocator, str: []const u8) ![]u8 {
     var encoded = std.ArrayListUnmanaged(u8){};

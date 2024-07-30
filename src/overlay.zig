@@ -49,7 +49,7 @@ pub const WatchedOverlay = extern struct {
 
         if (self.ref == 0) {
             main.global_allocator.destroy(self);
-            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .Monotonic);
+            _ = @atomicRmw(windows.LONG, &main.obj_count, .Sub, 1, .monotonic);
             return 0;
         }
 
@@ -93,8 +93,11 @@ pub const WatchedOverlay = extern struct {
         if (cchMax < 1) {
             return windows.E_INVALIDARG;
         }
+        if (main.dll_file_name_w.len + 1 > cchMax) {
+            return windows_extra.HRESULT_FROM_WIN32(.INSUFFICIENT_BUFFER);
+        }
 
-        std.mem.copy(u16, (pwszIconFile.?)[0..@intCast(cchMax)], main.dll_file_name_w[0 .. main.dll_file_name_w.len + 1]);
+        @memcpy((pwszIconFile.?)[0 .. main.dll_file_name_w.len + 1], main.dll_file_name_w[0 .. main.dll_file_name_w.len + 1]);
 
         pIndex.?.* = 0;
         pdwFlags.?.* = windows_extra.ISIOI_ICONFILE | windows_extra.ISIOI_ICONINDEX;
@@ -134,7 +137,7 @@ pub const WatchedOverlay = extern struct {
         // QueryInterface call
         _ = obj.vtable.unknown.Release(obj);
 
-        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .Monotonic);
+        _ = @atomicRmw(windows.LONG, &main.obj_count, .Add, 1, .monotonic);
 
         return result;
     }

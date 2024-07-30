@@ -33,7 +33,7 @@ pub const Cache = struct {
     pub fn update(self: *Cache, path_w: []const u16) !void {
         if (path_w.len == 0) return;
         const first_char = RtlUpcaseUnicodeChar(path_w[0]);
-        var result = try self.lcp_by_first_char.getOrPut(first_char);
+        const result = try self.lcp_by_first_char.getOrPut(first_char);
         if (!result.found_existing) {
             result.value_ptr.* = try self.allocator.dupe(u16, path_w);
         } else {

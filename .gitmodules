@@ -1,6 +1,0 @@
-[submodule "lib/zig-sqlite"]
-	path = lib/zig-sqlite
-	url = https://github.com/vrischmann/zig-sqlite.git
-[submodule "lib/zuri"]
-	path = lib/zuri
-	url = https://github.com/squeek502/zuri.git

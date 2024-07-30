@@ -1,0 +1,22 @@
+.{
+    .name = "watchedoverlay",
+    .version = "0.1.5",
+
+    .dependencies = .{
+        .sqlite = .{
+            .url = "https://github.com/vrischmann/zig-sqlite/archive/7f4be7d30b126affb66b390c7825addb1c3506bd.tar.gz",
+            .hash = "1220940ae067451e7e6824e9b92baceac93b0bd6fa9ffd315179cc9a7ce5430a46ac",
+        },
+        .zuri = .{
+            .url = "https://github.com/squeek502/zuri/archive/24b9add9e54f2b60f3808e52f5b34a4791e3a7a0.tar.gz",
+            .hash = "1220f19e4500db1a5106b115ce00641e3c3707b75631dd78793d6cbf6bab38d8ba80",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
