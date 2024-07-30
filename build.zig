@@ -53,9 +53,10 @@ pub fn build(b: *std.Build) void {
     main_tests.linkLibrary(sqlite);
     main_tests.addIncludePath(zig_sqlite.path("c"));
     main_tests.root_module.addImport("sqlite", zig_sqlite.module("sqlite"));
+    const run_main_tests = b.addRunArtifact(main_tests);
 
     const test_step = b.step("test", "Run library tests");
-    test_step.dependOn(&main_tests.step);
+    test_step.dependOn(&run_main_tests.step);
 
     // dist
     const dist_watched = b.addInstallFileWithDir(

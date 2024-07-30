@@ -134,7 +134,10 @@ test "init" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
-    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ "zig-cache", "tmp", &tmp.sub_path, "test.sqlite" });
+    const tmp_path = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(tmp_path);
+
+    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ tmp_path, "test.sqlite" });
     defer std.testing.allocator.free(db_path);
 
     var db = try Db.init(std.testing.allocator, db_path);
@@ -168,7 +171,10 @@ test "cache" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
-    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ "zig-cache", "tmp", &tmp.sub_path, "test.sqlite" });
+    const tmp_path = try tmp.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(tmp_path);
+
+    const db_path = try std.fs.path.joinZ(std.testing.allocator, &.{ tmp_path, "test.sqlite" });
     defer std.testing.allocator.free(db_path);
 
     var db = try Db.init(std.testing.allocator, db_path);
