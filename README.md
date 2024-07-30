@@ -16,7 +16,7 @@ A Windows shell extension to mark files with a 'watched' icon, and a utility pro
 
 ## Building
 
-Note: Last tested with Zig `0.12.0-dev.1150+3c22cecee2`. Pull requests that fix the build for latest master version of Zig are always welcome.
+Note: Last tested with Zig `0.14.0-dev.673+390c7d84b`. Pull requests that fix the build for latest master version of Zig are always welcome.
 
 1. Clone this repository and its submodules (`git clone --recursive` to get submodules)
 2. `zig build dist`
