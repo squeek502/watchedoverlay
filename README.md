@@ -14,6 +14,15 @@ A Windows shell extension to mark files with a 'watched' icon, and a utility pro
 3. Run the `install.bat` as Administrator (right click -> Run as administrator)
 4. Restart `explorer.exe`, or log out/log back in, or restart your computer
 
+### Upgrading
+
+1. Download the new version
+2. Run the `uninstall.bat` of your existing version as Administrator (right click -> Run as administrator)
+3. Restart `explorer.exe`, or log out/log back in, or restart your computer
+4. Overwrite your existing version's files with the new version's files
+5. Run the `install.bat` as Administrator (right click -> Run as administrator)
+6. Restart `explorer.exe`, or log out/log back in, or restart your computer
+
 ## Building
 
 Note: Last tested with Zig `0.14.0-dev.673+390c7d84b`. Pull requests that fix the build for latest master version of Zig are always welcome.
